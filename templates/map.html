@@ -1,35 +1,126 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <title>Simple Map</title>
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
-      /* Always set the map height explicitly to define the size of the div
-       * element that contains the map. */
-      #map {
-        height: 100%;
-      }
-      /* Optional: Makes the sample page fill the window. */
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-      }
+        /* Always set the map height explicitly to define the size of the div
+         * element that contains the map. */
+        #map {
+            height: 100%;
+        }
+
+        /* Optional: Makes the sample page fill the window. */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
     </style>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script>
-      var map;
-      function initMap() {
-        map = new google.maps.Map(document.getElementById('map'), {
-          center: {lat: -34.397, lng: 150.644},
-          zoom: 8
+</head>
+<body>
+<div id="map"></div>
+<script>
+    // our map isnt ready yet, so just fill out datapoints
+    // server side, we can create points in init map
+    const datapoints = [
+        // inline jinja2 works in script but makes intellij lose it mind
+        // TODO: have server return in format we want
+        {% for dp in datapoints %}
+
+        {
+            lat: {{dp.lat}},
+            long: {{dp.long}},
+            speed: {{dp.speed}},
+            alt: {{dp.alt}}
+        },
+
+    {% endfor %}
+    ];
+
+    const maxSpeed = datapoints.reduce((acc,v) => {
+        return !acc || v.speed > acc ? v.speed : acc;
+    }, 0);
+
+    let map;
+
+    //
+    // function getSpeedScale(speed) {
+    //     // we get speed in meters per second
+    //     // 100 miles per hour is 44.76 meters per second
+    //     // scale quite a bit past our top speed so the 'blobs' in
+    //     // google maps api scale look not overbearingly huge
+    //     const maxMPS = 44.71;
+    //     return maxMPS * Math.max(0.1, speed / maxMPS);
+    // }
+
+    // start and end are properties with { r, g, b }
+    // missing typescript atm. returns { r, g, b }
+    // bilinearly interp'd by frac
+    function interpColor(start, end, frac) {
+        // sanity check: clamp
+        frac = Math.min(Math.max(frac, 0.0), 1.0);
+
+        // assumes full alpha
+        const deltaRed = end.r - start.r;
+        const deltaGreen = end.g - start.g;
+        const deltaBlue = end.b = start.b;
+
+        return {
+            r: start.r + deltaRed * frac,
+            g: start.g + deltaGreen * frac,
+            b: start.b + deltaBlue * frac
+        };
+    }
+
+    // returns css rgb() string of color
+    function getSpeedColor(mps) {
+        // we will go from green (stopped) to deep red for near our max
+        const frac = mps / (maxSpeed * 0.95); // max speed is fastest seen globally
+        const stoppedColor = { r: 0, g: 255, b: 0 };
+        const maxColor = { r: 255, g: 0, b: 0 };
+        const interpedCol = interpColor(stoppedColor, maxColor, frac);
+        return `rgb(${interpedCol.r}, ${interpedCol.g}, ${interpedCol.b}`;
+    }
+
+    // this gets a feature from data passed in for each datapoint
+    function getMarker(dp) {
+        // @type {google.maps.Data.StyleOptions}
+        // console.log(dp);
+        const speed = dp.getProperty('speed');
+        // color speed on min -> max of 0mph to 65 mph (29.0 mps)
+        return ({
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8.0, //getSpeedScale(speed),
+                fillColor: getSpeedColor(speed), // '#f00',
+                fillOpacity: 0.3,
+                strokeWeight:1
+            }
         });
-      }
-    </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDAwXXHDTsTzkRueSdOkN4NzkhODAQ_Zac&callback=initMap"
-    async defer></script>
-  </body>
+    }
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: {lat: 39.57269487, lng: -105.1317989},
+            zoom: 20
+        });
+
+        map.data.setStyle(getMarker);
+        // now that map is ready we can feed it points
+        datapoints.forEach(dp => {
+            // TODO: have backend return us datapoints in ready to go format
+            const ll = new google.maps.LatLng(dp.lat, dp.long);
+            map.data.add({
+                geometry: ll,
+                properties: {...dp}
+            });
+        });
+    }
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDAwXXHDTsTzkRueSdOkN4NzkhODAQ_Zac&callback=initMap"
+        async defer></script>
+</body>
 </html>
