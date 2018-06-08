@@ -6,10 +6,11 @@ app = Flask(__name__)
 
 # TODO: let client upload a log
 TESTFILE = 'trips/obd2log_20180606.csv'
+TESTFILE2 = 'trips/obd2log_20180607.csv'
 
 @app.route('/')
 def hello():
-    data = TripData(TESTFILE)
+    data = TripData(TESTFILE2)
     return render_template('map.html', datapoints=data.interp())
 
 

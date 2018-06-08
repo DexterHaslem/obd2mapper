@@ -32,7 +32,7 @@ class TripData:
         dist_m = sqrt(x * x + y * y) * EARTHRADIUS_M
         return dist_m
 
-    def interp(self, min_meters=10):
+    def interp(self, min_meters=3):
         """showing 2000 points on a google map in a small area kills it,
         interpolate between effective points.
 
@@ -49,8 +49,13 @@ class TripData:
         maxlen = len(self.data)
 
         last_good_idx = 0
+        skip_till = -1
         # cant use a for loop, we are monkey jumping with peeking
         for idx in range(maxlen):
+
+            if idx < skip_till:
+                continue
+
             cur_pt = self.data[idx]
 
             if idx < maxlen - 1:
@@ -65,6 +70,7 @@ class TripData:
                     filtered.append(cur_pt)
                     cur_pt.loiter = loiter_count
                     last_good_idx = idx
+                    skip_till = next_idx
 
         # while idx < maxlen:
         #     cur_pt = self.data[idx]
