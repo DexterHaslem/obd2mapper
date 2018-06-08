@@ -14,7 +14,7 @@
         /* Optional: Makes the sample page fill the window. */
         html, body {
             height: 100%;
-            margin: 0;
+            margin: 5px;
             padding: 0;
         }
     </style>
@@ -33,7 +33,8 @@
             lat: {{dp.lat}},
             long: {{dp.long}},
             speed: {{dp.speed}},
-            alt: {{dp.alt}}
+            alt: {{dp.alt}},
+            loiter: {{dp.loiter}}
         },
 
     {% endfor %}
@@ -89,14 +90,15 @@
         // @type {google.maps.Data.StyleOptions}
         // console.log(dp);
         const speed = dp.getProperty('speed');
+        const loiterCount = dp.getProperty('loiter');
         // color speed on min -> max of 0mph to 65 mph (29.0 mps)
         return ({
             icon: {
                 path: google.maps.SymbolPath.CIRCLE,
-                scale: 8.0, //getSpeedScale(speed),
+                scale: 6.0, //getSpeedScale(speed),
                 fillColor: getSpeedColor(speed), // '#f00',
-                fillOpacity: 0.3,
-                strokeWeight:1
+                fillOpacity: Math.min(1.0, Math.max(0.1, 0.1 * loiterCount)),
+                strokeWeight: 0
             }
         });
     }
@@ -104,7 +106,7 @@
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
             center: {lat: 39.57269487, lng: -105.1317989},
-            zoom: 20
+            zoom: 15
         });
 
         map.data.setStyle(getMarker);
