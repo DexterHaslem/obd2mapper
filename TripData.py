@@ -29,7 +29,7 @@ class TripData:
         x = radians(to.long - fromp.long) * cos(radians(fromp.lat + to.lat) / 2)
         y = radians(fromp.lat - to.lat)
         dist_m = sqrt(x * x + y * y) * EARTHRADIUS_M
-        return dist_m
+        return abs(dist_m)
 
     def filtered_by_dist(self, min_meters=2):
         """Return a copy of the data points with data points less than `min_meters` away filtered
@@ -42,27 +42,27 @@ class TripData:
         filtered = []
         maxlen = len(self.data)
 
-        last_good_idx = 0
-        skip_till = -1
+        last_pt = None
+        skip_tally = 0
 
         for idx in range(maxlen):
+            cur_pt = self.data[idx]
+            #cur_pt.loiter = skip_tally
 
-            if idx < skip_till:
+            if not last_pt:
+                cur_pt.loiter = 0
+                filtered.append(cur_pt)
+                last_pt = cur_pt
                 continue
 
-            cur_pt = self.data[idx]
-
-            if idx < maxlen - 1:
-                # if we are far enough away from next one, add to list (forward looking compare)
-                # TODO: this can skip last point
-                next_idx = idx + 1
-                next_pt = self.data[next_idx]
-                md = self._equirect_approx_dist_m(cur_pt, next_pt)
-                if md >= min_meters:
-                    loiter_count = next_idx - last_good_idx
-                    cur_pt.loiter = loiter_count
-                    last_good_idx = idx
-                    skip_till = next_idx
-                    filtered.append(cur_pt)
+            # if we are far enough away from last saved point, add us and make us most recent point
+            md = self._equirect_approx_dist_m(last_pt, cur_pt)
+            if md >= min_meters:
+                cur_pt.loiter = skip_tally
+                filtered.append(cur_pt)
+                last_pt = cur_pt
+                skip_tally = 0
+            else:
+                skip_tally += 1
 
         return filtered

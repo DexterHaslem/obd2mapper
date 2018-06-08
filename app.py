@@ -10,7 +10,7 @@ app = Flask(__name__)
 TESTFILE = 'trips/obd2log_20180606.csv'
 TESTFILE2 = 'trips/obd2log_20180607.csv'
 
-data = TripData(TESTFILE2)
+data = TripData(TESTFILE)
 
 
 @app.route('/mindist/<int:mindist>')
