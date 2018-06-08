@@ -1,17 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Simple Map</title>
+    <title>OBD-II Log thing</title>
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
-        /* Always set the map height explicitly to define the size of the div
-         * element that contains the map. */
         #map {
             height: 100%;
         }
-
-        /* Optional: Makes the sample page fill the window. */
         html, body {
             height: 100%;
             margin: 5px;
@@ -78,9 +74,11 @@
     // returns css rgb() string of color
     function getSpeedColor(mps) {
         // we will go from green (stopped) to deep red for near our max
-        const frac = mps / (maxSpeed * 0.95); // max speed is fastest seen globally
+        // max speed is fastest seen globally. make it red out anything above 80% max
+        const frac = mps / (maxSpeed * 0.80);
         const stoppedColor = { r: 0, g: 255, b: 0 };
-        const maxColor = { r: 255, g: 0, b: 0 };
+        const maxColor = { r: 250, g: 20, b: 10 };
+
         const interpedCol = interpColor(stoppedColor, maxColor, frac);
         return `rgb(${interpedCol.r}, ${interpedCol.g}, ${interpedCol.b}`;
     }
@@ -97,7 +95,7 @@
                 path: google.maps.SymbolPath.CIRCLE,
                 scale: 6.0, //getSpeedScale(speed),
                 fillColor: getSpeedColor(speed), // '#f00',
-                fillOpacity: Math.min(1.0, Math.max(0.1, 0.1 * loiterCount)),
+                fillOpacity: Math.min(1.0, Math.max(0.1, 0.2 * loiterCount)),
                 strokeWeight: 0
             }
         });
@@ -105,7 +103,8 @@
 
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
-            center: {lat: 39.57269487, lng: -105.1317989},
+            // @39.5749759,-105.1097842,14.84z
+            center: {lat: 39.5749759, lng: -105.1097842},
             zoom: 15
         });
 
@@ -124,5 +123,7 @@
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDAwXXHDTsTzkRueSdOkN4NzkhODAQ_Zac&callback=initMap"
         async defer></script>
+    <div style="color: rgb(48,255,0);">
+    </div>
 </body>
 </html>

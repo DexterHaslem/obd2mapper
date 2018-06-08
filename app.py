@@ -11,7 +11,7 @@ TESTFILE2 = 'trips/obd2log_20180607.csv'
 @app.route('/')
 def hello():
     data = TripData(TESTFILE2)
-    return render_template('map.html', datapoints=data.interp())
+    return render_template('map.html', datapoints=data.filtered_by_dist())
 
 
 if __name__ == '__main__':

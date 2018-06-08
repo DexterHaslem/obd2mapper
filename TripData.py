@@ -13,14 +13,13 @@ class TripData:
     def _parse_file(self):
         with open(self.fn) as f:
             reader = DictReader(f)
-            # TODO: the files are logged in order, but it may be better
-            # to parse date and handle in chrono. huge perf hit tho
+
             for row in reader:
                 self.data.append(DataPoint(row))
 
-    def _haversine_dist(self):
-        # a = sin²(Δφ/2) + cos φ1 ⋅ cos φ2 ⋅ sin²(Δλ/2)
-        pass
+    # def _haversine_dist(self):
+    #     # a = sin²(Δφ/2) + cos φ1 ⋅ cos φ2 ⋅ sin²(Δλ/2)
+    #     pass
 
     def _equirect_approx_dist_m(self, fromp, to):
         # we dont need full haversine distance
@@ -32,15 +31,11 @@ class TripData:
         dist_m = sqrt(x * x + y * y) * EARTHRADIUS_M
         return dist_m
 
-    def interp(self, min_meters=3):
-        """showing 2000 points on a google map in a small area kills it,
-        interpolate between effective points.
-
-        This is done by setting a min number of distance between points,
-        grouping points that are all within the
-        threshold and keeping track how many 'loitering' points there are
+    def filtered_by_dist(self, min_meters=2):
+        """Return a copy of the data points with data points less than `min_meters` away filtered
+        out. All filtered out points are tallied as 'loiter' points
         """
-
+        # TODO: make this interp and average all loiter'd points
         # TODO: this could be optimized
         # bit of a hack, relies on data being in chronological order
         # so this doesnt work for nearby points from LAPS
@@ -50,7 +45,7 @@ class TripData:
 
         last_good_idx = 0
         skip_till = -1
-        # cant use a for loop, we are monkey jumping with peeking
+
         for idx in range(maxlen):
 
             if idx < skip_till:
@@ -59,8 +54,8 @@ class TripData:
             cur_pt = self.data[idx]
 
             if idx < maxlen - 1:
-                # if we are far enough away from next one, add to list
-                # (forward peeking)
+                # if we are far enough away from next one, add to list (forward looking compare)
+                # TODO: this can skip last point
                 next_idx = idx + 1
                 next_pt = self.data[next_idx]
                 md = self._equirect_approx_dist_m(cur_pt, next_pt)
@@ -72,22 +67,6 @@ class TripData:
                     last_good_idx = idx
                     skip_till = next_idx
 
-        # while idx < maxlen:
-        #     cur_pt = self.data[idx]
-        #     filtered.append(cur_pt)
-        #
-        #     # keep peeking at next until we get far enough away
-        #     idx += 1
-        #
-        #     while idx < maxlen:
-        #         next_pt = self.data[idx]
-        #         md = self._equirect_approx_dist_m(cur_pt, next_pt)
-        #         if md >= min_meters:
-        #             # this is a ghetto monkey jump. we are far enough away
-        #             # to be the next point
-        #             idx = next
-        #             break
-        #         next += 1
         print('interp: returned {} out of {} points'.format(len(filtered), maxlen))
         return filtered
 
