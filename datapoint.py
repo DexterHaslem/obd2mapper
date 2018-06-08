@@ -5,6 +5,8 @@ from datetime import datetime
 TIMEFMT = '%a %b %d %H:%M:%S %Y'
 
 
+# TODO: serialization
+
 class DataPoint:
     """DataPoint represents a single parsed line from odb2 csv log"""
 
@@ -16,5 +18,5 @@ class DataPoint:
         self.speed = float(csvrow['GPS Speed (Meters/second)'])
         self.alt = float(csvrow[' Altitude'])
         # HACK: here be dragons: datetime.strptime cant handle %Z / 'MDT'
-        # just drop timezone for this prototype
+        # just drop timezone for this prototype. time is currently unused
         self.time = datetime.strptime(csvrow['GPS Time'].replace(' MDT', ''), TIMEFMT)

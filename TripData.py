@@ -36,7 +36,6 @@ class TripData:
         out. All filtered out points are tallied as 'loiter' points
         """
         # TODO: make this interp and average all loiter'd points
-        # TODO: this could be optimized
         # bit of a hack, relies on data being in chronological order
         # so this doesnt work for nearby points from LAPS
 
@@ -60,15 +59,10 @@ class TripData:
                 next_pt = self.data[next_idx]
                 md = self._equirect_approx_dist_m(cur_pt, next_pt)
                 if md >= min_meters:
-                    # see how many points we skipped
                     loiter_count = next_idx - last_good_idx
-                    filtered.append(cur_pt)
                     cur_pt.loiter = loiter_count
                     last_good_idx = idx
                     skip_till = next_idx
+                    filtered.append(cur_pt)
 
-        print('interp: returned {} out of {} points'.format(len(filtered), maxlen))
         return filtered
-
-    def as_google_features(self):
-        pass

@@ -8,6 +8,7 @@
         #map {
             height: 100%;
         }
+
         html, body {
             height: 100%;
             margin: 5px;
@@ -17,40 +18,10 @@
 </head>
 <body>
 <div id="map"></div>
+
 <script>
-    // our map isnt ready yet, so just fill out datapoints
-    // server side, we can create points in init map
-    const datapoints = [
-        // inline jinja2 works in script but makes intellij lose it mind
-        // TODO: have server return in format we want
-        {% for dp in datapoints %}
-
-        {
-            lat: {{dp.lat}},
-            long: {{dp.long}},
-            speed: {{dp.speed}},
-            alt: {{dp.alt}},
-            loiter: {{dp.loiter}}
-        },
-
-    {% endfor %}
-    ];
-
-    const maxSpeed = datapoints.reduce((acc,v) => {
-        return !acc || v.speed > acc ? v.speed : acc;
-    }, 0);
-
     let map;
-
-    //
-    // function getSpeedScale(speed) {
-    //     // we get speed in meters per second
-    //     // 100 miles per hour is 44.76 meters per second
-    //     // scale quite a bit past our top speed so the 'blobs' in
-    //     // google maps api scale look not overbearingly huge
-    //     const maxMPS = 44.71;
-    //     return maxMPS * Math.max(0.1, speed / maxMPS);
-    // }
+    let maxSpeed;
 
     // start and end are properties with { r, g, b }
     // missing typescript atm. returns { r, g, b }
@@ -73,45 +44,58 @@
 
     // returns css rgb() string of color
     function getSpeedColor(mps) {
-        // we will go from green (stopped) to deep red for near our max
-        // max speed is fastest seen globally. make it red out anything above 80% max
-        const frac = mps / (maxSpeed * 0.80);
-        const stoppedColor = { r: 0, g: 255, b: 0 };
-        const maxColor = { r: 250, g: 20, b: 10 };
-
-        const interpedCol = interpColor(stoppedColor, maxColor, frac);
-        return `rgb(${interpedCol.r}, ${interpedCol.g}, ${interpedCol.b}`;
+        // we will go from green (fastest) to red for stopped
+        const frac = mps / maxSpeed;
+        const stoppedColor = {r: 255, g: 0, b: 0};
+        const maxColor = {r: 0, g: 255, b: 0};
+        const interp = interpColor(stoppedColor, maxColor, frac);
+        return `rgb(${interp.r}, ${interp.g}, ${interp.b}`;
     }
 
     // this gets a feature from data passed in for each datapoint
     function getMarker(dp) {
         // @type {google.maps.Data.StyleOptions}
-        // console.log(dp);
         const speed = dp.getProperty('speed');
         const loiterCount = dp.getProperty('loiter');
-        // color speed on min -> max of 0mph to 65 mph (29.0 mps)
+        const alt = dp.getProperty('alt');
         return ({
             icon: {
                 path: google.maps.SymbolPath.CIRCLE,
-                scale: 6.0, //getSpeedScale(speed),
-                fillColor: getSpeedColor(speed), // '#f00',
-                fillOpacity: Math.min(1.0, Math.max(0.1, 0.2 * loiterCount)),
-                strokeWeight: 0
+                scale: Math.min(15, 3 * loiterCount),
+                fillColor: getSpeedColor(speed),
+                fillOpacity: 0.30,//Math.min(1.0, Math.max(0.15, 0.2 * loiterCount)),
+                strokeWeight: 0.2,
             }
         });
     }
 
+    function getDataForDist() {
+        fetch('//localhost:5000/mindist/10')
+            .then(resp => resp.json())
+            .then(jsond => onData(jsond))
+            .catch(err => console.error);
+    }
+
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
-            // @39.5749759,-105.1097842,14.84z
             center: {lat: 39.5749759, lng: -105.1097842},
             zoom: 15
         });
 
         map.data.setStyle(getMarker);
-        // now that map is ready we can feed it points
-        datapoints.forEach(dp => {
-            // TODO: have backend return us datapoints in ready to go format
+        getDataForDist();
+    }
+
+    function onData(data) {
+
+        maxSpeed = data.points.reduce((acc,v) => {
+            return !acc || v.speed > acc ? v.speed : acc;
+        }, 0);
+
+        console.log('max speed =', maxSpeed);
+        // it would be nice to have backend provide this in correct format
+        // but it doesnt have access to google maps LatLng proto, trying to fake it didnt work
+        data.points.forEach(dp => {
             const ll = new google.maps.LatLng(dp.lat, dp.long);
             map.data.add({
                 geometry: ll,
@@ -120,10 +104,10 @@
         });
     }
 </script>
-
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDAwXXHDTsTzkRueSdOkN4NzkhODAQ_Zac&callback=initMap"
-        async defer></script>
-    <div style="color: rgb(48,255,0);">
-    </div>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDAwXXHDTsTzkRueSdOkN4NzkhODAQ_Zac&callback=initMap" async
+        defer>
+</script>
+<div style="color: rgb(48,255,0);">
+</div>
 </body>
 </html>
