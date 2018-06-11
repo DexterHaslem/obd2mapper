@@ -10,12 +10,12 @@ app = Flask(__name__)
 TESTFILE = 'trips/obd2log_20180606.csv'
 TESTFILE2 = 'trips/obd2log_20180607.csv'
 
-data = TripData(TESTFILE2)
+trip = TripData(TESTFILE2)
 
 
 @app.route('/mindist/<int:mindist>')
 def get_points(mindist):
-    filtered = data.filtered_by_dist(min_meters=mindist)
+    filtered = trip.filtered_by_dist(min_meters=mindist)
 
     dicts = []
     for p in filtered:
@@ -35,8 +35,21 @@ def get_points(mindist):
 
 
 @app.route('/')
-def map():
+def index():
     return render_template('map.html')
+
+
+@app.route('/stats')
+def stats():
+    length = trip.total_length_meters()
+    alt = trip.total_altitude_traversed()
+    avg_mps = trip.avg_mps()
+
+    return json.dumps({
+        'total_length_meters': length,
+        'total_alt_meters': alt,
+        'avg_mps': avg_mps
+    })
 
 
 if __name__ == '__main__':
