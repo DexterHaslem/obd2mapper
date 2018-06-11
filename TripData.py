@@ -4,6 +4,17 @@ from math import cos, sqrt, radians
 from datapoint import DataPoint
 
 
+def _equirect_approx_dist_m(fromp, to):
+    # we dont need full haversine distance
+    # approximate the meters diff
+    # EARTHRADIUS_KM = 6372.8
+    EARTHRADIUS_M = 6372800
+    x = radians(to.long - fromp.long) * cos(radians(fromp.lat + to.lat) / 2)
+    y = radians(fromp.lat - to.lat)
+    dist_m = sqrt(x * x + y * y) * EARTHRADIUS_M
+    return abs(dist_m)
+
+
 class TripData:
     def __init__(self, filename):
         self.data = []
@@ -21,16 +32,6 @@ class TripData:
     #     # a = sin²(Δφ/2) + cos φ1 ⋅ cos φ2 ⋅ sin²(Δλ/2)
     #     pass
 
-    def _equirect_approx_dist_m(self, fromp, to):
-        # we dont need full haversine distance
-        # approximate the meters diff
-        # EARTHRADIUS_KM = 6372.8
-        EARTHRADIUS_M = 6372800
-        x = radians(to.long - fromp.long) * cos(radians(fromp.lat + to.lat) / 2)
-        y = radians(fromp.lat - to.lat)
-        dist_m = sqrt(x * x + y * y) * EARTHRADIUS_M
-        return abs(dist_m)
-
     def filtered_by_dist(self, min_meters=2):
         """Return a copy of the data points with data points less than `min_meters` away filtered
         out. All filtered out points are tallied as 'loiter' points
@@ -47,7 +48,7 @@ class TripData:
 
         for idx in range(maxlen):
             cur_pt = self.data[idx]
-            #cur_pt.loiter = skip_tally
+            # cur_pt.loiter = skip_tally
 
             if not last_pt:
                 cur_pt.loiter = 0
@@ -56,7 +57,7 @@ class TripData:
                 continue
 
             # if we are far enough away from last saved point, add us and make us most recent point
-            md = self._equirect_approx_dist_m(last_pt, cur_pt)
+            md = _equirect_approx_dist_m(last_pt, cur_pt)
             if md >= min_meters:
                 cur_pt.loiter = skip_tally
                 filtered.append(cur_pt)
