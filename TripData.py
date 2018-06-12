@@ -72,6 +72,8 @@ class TripData:
             else:
                 loiter_count += 1
 
+        num_filtered = len(self.data) - len(filtered)
+        print('filtered {} data points'.format(num_filtered))
         return filtered
 
     def total_length_meters(self):
